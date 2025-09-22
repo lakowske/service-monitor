@@ -1,0 +1,28 @@
+# Gitleaks ignore patterns
+# This file contains patterns that should be ignored by gitleaks
+
+# Example patterns (uncomment and modify as needed):
+# /tests/test_data/fake_secrets.py
+# *.example
+# docs/examples/*
+
+# Common false positives:
+# Generic test strings
+*test*password*
+*test*token*
+*test*key*
+*example*secret*
+*dummy*key*
+*fake*token*
+
+# Documentation examples
+docs/**/examples/*
+*.md:*example*
+*.md:*dummy*
+*.md:*test*
+
+# Configuration templates
+*.template
+*.example
+config.example.*
+settings.example.*

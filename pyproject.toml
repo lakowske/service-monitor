@@ -1,0 +1,199 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "service-monitor"
+version = "0.1.0"
+description = "A Python application for monitoring services and their health status"
+authors = [{name = "Seth Lakowske", email = "lakowske@gmail.com"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "requests",
+    "pydantic>=2.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.8.0",
+    "mdformat>=0.7.0",           # Markdown formatter
+    "mdformat-gfm>=0.3.0",      # GitHub Flavored Markdown support
+    "mdformat-tables>=0.4.0",   # Table formatting
+    "pre-commit>=4.0.0",
+    "coverage>=7.0.0",
+    "mypy>=1.0.0",               # Type checker (fallback to mypy for now)
+    "mkdocs>=1.5.0",             # Documentation generator
+    "mkdocs-material>=9.0.0",    # Material theme for MkDocs
+    "mkdocstrings[python]>=0.24.0",  # API documentation
+    "uv>=0.4.0",                 # Fast Python package manager
+]
+
+[project.urls]
+Homepage = "https://github.com/lakowske/service-monitor"
+Repository = "https://github.com/lakowske/service-monitor"
+Issues = "https://github.com/lakowske/service-monitor/issues"
+
+[tool.mdformat]
+wrap = 120
+end_of_line = "lf"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+# Exclude directories
+exclude = [
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    ".git",
+    "__pycache__",
+    ".eggs",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+]
+
+[tool.ruff.lint]
+# Enable multiple rule categories
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "S",    # bandit security
+    "D",    # pydocstyle
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "C4",   # comprehensions
+    "DTZ",  # datetime
+    "T10",  # debugger
+    "EM",   # error messages
+    "PIE",  # misc lints
+    "RSE",  # raise statements
+    "RET",  # return statements
+    "SIM",  # simplifications
+    "PTH",  # pathlib
+]
+
+# Ignore specific rules
+ignore = [
+    "E203",  # Whitespace before ':' (conflicts with black)
+    "E501",  # Line too long (handled by formatter)
+    "S101",  # Use of assert (common in tests)
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "D103"]  # Allow assert in tests, don't require test docstrings
+"setup_new_project.py" = ["T201", "S603", "S607", "PTH201", "SIM114", "RET505", "SIM108"]  # Allow print statements and subprocess calls in setup script
+"src/service_monitor/actions/build.py" = ["PTH110", "PTH103"]  # Allow os.path usage in build script
+"src/service_monitor/core.py" = ["EM101"]  # Allow string literals in exceptions for demo code
+"test_integration.py" = ["S603"]  # Allow subprocess calls in integration test
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/build/*",
+    "*/dist/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+fail_under = 80
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = false
+strict_equality = true
+show_error_codes = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "pydantic.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "src.service_monitor.core"
+disable_error_code = "misc"
+
+[tool.mkdocs]
+# MkDocs configuration is in mkdocs.yml file
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]

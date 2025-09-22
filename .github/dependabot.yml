@@ -1,0 +1,66 @@
+# Dependabot configuration for automated dependency updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "lakowske"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "dev-deps"
+      include: "scope"
+    # Group updates for better organization
+    groups:
+      testing:
+        patterns:
+          - "pytest*"
+          - "coverage*"
+          - "*test*"
+      linting:
+        patterns:
+          - "ruff*"
+          - "pre-commit*"
+          - "ty*"
+      documentation:
+        patterns:
+          - "mkdocs*"
+          - "mdformat*"
+      data-validation:
+        patterns:
+          - "pydantic*"
+    # Security updates configuration
+    security-updates:
+      enabled: true
+    # Ignore specific packages or versions if needed
+    ignore:
+      # Example: ignore patch updates for stable packages
+      # - dependency-name: "requests"
+      #   update-types: ["version-update:semver-patch"]
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "lakowske"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"

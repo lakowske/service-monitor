@@ -1,0 +1,59 @@
+{
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+
+    // Disable all old Python extension linting (deprecated)
+    "python.linting.enabled": false,
+    "python.linting.pylintEnabled": false,
+    "python.linting.banditEnabled": false,
+    "python.linting.flake8Enabled": false,
+    "python.linting.prospectorEnabled": false,
+    "python.linting.pycodestyleEnabled": false,
+    "python.linting.pydocstyleEnabled": false,
+    "python.linting.pylamaEnabled": false,
+    "python.linting.mypyEnabled": false,
+
+    // Ruff configuration
+    "ruff.enable": true,
+    "ruff.path": ["./.venv/bin/ruff"],
+    "ruff.lint.enable": true,
+    "ruff.format.enable": true,
+    "ruff.organizeImports": true,
+
+    // Editor settings for Python
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.ruff": "explicit",
+        "source.organizeImports.ruff": "explicit"
+    },
+
+    // Set Ruff as the default formatter for Python files
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+
+    // MyPy configuration
+    "mypy-type-checker.path": ["./.venv/bin/mypy"],
+    "mypy-type-checker.args": [
+        "--config-file=pyproject.toml"
+    ],
+
+  // Markdown settings
+  "[markdown]": {
+    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
+    "editor.formatOnSave": true,
+    "editor.rulers": [120],
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 120
+  },
+
+  // Markdownlint configuration
+  "markdownlint.config": {
+    "extends": ".markdownlint.json"
+  }
+}

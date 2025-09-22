@@ -1,0 +1,125 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Tests with Coverage",
+            "type": "shell",
+            "command": "pytest",
+            "args": [
+                "--cov=.",
+                "--cov-report=term-missing",
+                "--cov-fail-under=80",
+                "--cov-report=html"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Format Code (Black)",
+            "type": "shell",
+            "command": "black",
+            "args": ["."],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Lint Code (Flake8)",
+            "type": "shell",
+            "command": "flake8",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run All Pre-commit Checks",
+            "type": "shell",
+            "command": "pre-commit",
+            "args": ["run", "--all-files"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Clean Project",
+            "type": "shell",
+            "command": "rm",
+            "args": ["-rf", "build/", "htmlcov/", ".coverage", "*.egg-info/", "__pycache__/", ".pytest_cache/"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Dependencies",
+            "type": "shell",
+            "command": "pip",
+            "args": ["install", "-e", ".[dev]"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Open Coverage Report",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "webbrowser", "htmlcov/index.html"],
+            "group": "build",
+            "dependsOn": "Run Tests with Coverage",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        }
+    ]
+}

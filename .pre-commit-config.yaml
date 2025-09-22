@@ -1,0 +1,44 @@
+# .pre-commit-config.yaml
+repos:
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.4.0
+      hooks:
+          - id: trailing-whitespace
+          - id: end-of-file-fixer
+          - id: check-yaml
+          - id: check-added-large-files
+
+    - repo: https://github.com/gitleaks/gitleaks
+      rev: v8.18.0
+      hooks:
+          - id: gitleaks
+
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+      rev: v0.8.6
+      hooks:
+          - id: ruff
+            args: [--fix]
+          - id: ruff-format
+
+    - repo: https://github.com/pre-commit/mirrors-mypy
+      rev: v1.16.0
+      hooks:
+          - id: mypy
+            additional_dependencies: [types-requests]
+
+    - repo: https://github.com/executablebooks/mdformat
+      rev: 0.7.17
+      hooks:
+        - id: mdformat
+          additional_dependencies:
+            - mdformat-gfm
+            - mdformat-tables
+
+    - repo: local
+      hooks:
+          - id: pytest-coverage
+            name: pytest-coverage
+            entry: bash -c 'source .venv/bin/activate && pytest --cov=src --cov-report=term-missing --cov-fail-under=80 --cov-report=html'
+            language: system
+            pass_filenames: false
+            always_run: true
