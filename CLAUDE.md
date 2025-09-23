@@ -1,14 +1,10 @@
-# Clean Python Project Template
+# Service Monitor Project
 
-## Project Purpose
+## Development Environment
 
-This is a template for creating clean, professional Python projects that incorporate industry best practices from the start. It serves as a foundation for new Python projects with all the essential development tools and quality assurance measures pre-configured.
+This project uses **uv** for dependency management and **virtual environments**. Always use the `.venv` virtual environment when working on this project.
 
-For detailed usage instructions and features, see [README.md](README.md).
-
-## Clean Code Practices Implemented
-
-### Code Quality & Standards
+## Code Quality & Standards
 
 - **Ruff** - Fast, all-in-one Python linter and formatter (replaces Black, Flake8, isort, and Bandit)
   - Automatic code formatting with 120 character line length
@@ -17,36 +13,12 @@ For detailed usage instructions and features, see [README.md](README.md).
 - **mdformat** - Markdown formatting with GitHub Flavored Markdown support
 - **Pre-commit hooks** - Automated quality checks before every commit
 
-### Testing & Coverage
+## Testing & Coverage
 
 - **Pytest** - Modern testing framework with proper project structure
 - **Coverage reporting** - Minimum 80% code coverage required
 - **HTML coverage reports** - Generated in `htmlcov/` directory
 - **Integration testing** - Structured test organization
-
-### Git Workflow
-
-- **Pre-commit configuration** - Ensures code quality on every commit
-- **Automated checks** for:
-  - Trailing whitespace removal
-  - End-of-file fixing
-  - YAML validation
-  - Large file detection
-  - Code formatting and linting (Ruff)
-  - Markdown formatting (mdformat with GFM support)
-  - Test coverage (Pytest with 80% minimum)
-
-## Project Structure
-
-```text
-clean-python/
-├── actions/          # Project build and automation scripts
-├── tests/           # Test suite with pytest configuration
-├── build/           # Build artifacts (auto-generated)
-├── htmlcov/         # HTML coverage reports
-├── .pre-commit-config.yaml  # Pre-commit hook configuration
-└── setup.cfg        # Project metadata and configuration
-```
 
 ## Development Commands
 
@@ -104,77 +76,9 @@ Every commit must pass:
 1. Proper file endings
 1. Valid YAML syntax
 
-This template ensures that code quality, testing, and documentation standards are maintained throughout the development lifecycle.
+## Important Instructions
 
-## Quick Usage Examples for Claude
-
-### Example 1: Create a new API project interactively
-
-```bash
-# Clone and enter the template
-git clone https://github.com/lakowske/clean-python.git
-cd clean-python
-
-# Run setup interactively
-python setup_new_project.py
-# Enter when prompted:
-# Project name: fastapi-todo-app
-# Description: A REST API for managing todo items
-# Author: John Smith
-# Email: john.smith@example.com
-# GitHub username: johnsmith
-```
-
-### Example 2: Create a CLI tool project with all arguments
-
-```bash
-# Clone template
-git clone https://github.com/lakowske/clean-python.git
-cd clean-python
-
-# One-line setup with all arguments
-python setup_new_project.py \
-    --name python-file-organizer \
-    --description "A CLI tool to organize files by type and date" \
-    --author "Jane Developer" \
-    --email "jane@dev.com" \
-    --github "janedev" \
-    -y
-```
-
-### Example 3: Create a data science project in a specific directory
-
-```bash
-# Clone template
-git clone https://github.com/lakowske/clean-python.git
-cd clean-python
-
-# Create project in custom location
-python setup_new_project.py \
-    --name ml-sentiment-analysis \
-    --description "Machine learning project for sentiment analysis" \
-    --author "Data Scientist" \
-    --email "ds@company.com" \
-    --output-dir ~/projects/ml/sentiment-analysis
-```
-
-### After Project Creation
-
-The new project will be created with:
-
-- All configuration files updated with project information
-- Python package renamed to match the project
-- Fresh git repository initialized with first commit
-- Ready for development with all tools pre-configured
-
-Next steps in the new project:
-
-```bash
-cd ../my-new-project  # or cd to your custom output directory
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-pre-commit install
-```
-
-Now you can start coding with all quality checks automated!
+- Do what has been asked; nothing more, nothing less
+- NEVER create files unless they're absolutely necessary for achieving your goal
+- ALWAYS prefer editing an existing file to creating a new one
+- NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User

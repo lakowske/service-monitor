@@ -2,8 +2,7 @@
 
 import logging
 import time
-from datetime import datetime
-from typing import List
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -36,6 +35,7 @@ def reset_storage() -> None:
     global storage
     storage = InMemoryStorage()
 
+
 # Track application start time for uptime calculation
 app_start_time = time.time()
 
@@ -49,7 +49,7 @@ async def health_check() -> HealthResponse:
     Returns:
         HealthResponse: Current health status and metrics
     """
-    current_time = datetime.now()
+    current_time = datetime.now(timezone.utc)
     uptime = time.time() - app_start_time
     monitored_services = storage.get_service_count()
 
@@ -104,17 +104,15 @@ async def service_checkin(checkin: ServiceCheckIn) -> ServiceInfo:
         )
         return service_info
     except Exception as e:
-        logger.error(
-            f"Service check-in failed - service_name: {checkin.service_name}, error: {str(e)}", exc_info=True
-        )
+        logger.error(f"Service check-in failed - service_name: {checkin.service_name}, error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process service check-in",
         ) from e
 
 
-@app.get("/services", response_model=List[ServiceInfo])
-async def get_all_services() -> List[ServiceInfo]:
+@app.get("/services", response_model=list[ServiceInfo])
+async def get_all_services() -> list[ServiceInfo]:
     """Get information about all monitored services.
 
     Returns:
@@ -171,8 +169,8 @@ async def remove_service(service_name: str) -> None:
     logger.info(f"Service removed successfully - service_name: {service_name}")
 
 
-@app.get("/services/status/{status_filter}", response_model=List[ServiceInfo])
-async def get_services_by_status(status_filter: str) -> List[ServiceInfo]:
+@app.get("/services/status/{status_filter}", response_model=list[ServiceInfo])
+async def get_services_by_status(status_filter: str) -> list[ServiceInfo]:
     """Get all services with a specific status.
 
     Args:

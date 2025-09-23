@@ -46,6 +46,7 @@ dev = [
     "pre-commit>=4.0.0",
     "coverage>=7.0.0",
     "mypy>=1.0.0",               # Type checker (fallback to mypy for now)
+    "types-requests",            # Type stubs for requests
     "mkdocs>=1.5.0",             # Documentation generator
     "mkdocs-material>=9.0.0",    # Material theme for MkDocs
     "mkdocstrings[python]>=0.24.0",  # API documentation
@@ -118,10 +119,8 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "D103"]  # Allow assert in tests, don't require test docstrings
-"setup_new_project.py" = ["T201", "S603", "S607", "PTH201", "SIM114", "RET505", "SIM108"]  # Allow print statements and subprocess calls in setup script
-"src/service_monitor/actions/build.py" = ["PTH110", "PTH103"]  # Allow os.path usage in build script
-"src/service_monitor/core.py" = ["EM101"]  # Allow string literals in exceptions for demo code
-"test_integration.py" = ["S603"]  # Allow subprocess calls in integration test
+"src/service_monitor/main.py" = ["S104"]  # Allow binding to all interfaces for service monitoring
+"src/service_monitor/server.py" = ["S104"]  # Allow binding to all interfaces for service monitoring
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
@@ -184,6 +183,18 @@ module = "pydantic.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+module = "fastapi.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "uvicorn.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "src.service_monitor.main"
+disable_error_code = ["misc", "no-untyped-def"]
+
+[[tool.mypy.overrides]]
 module = "src.service_monitor.core"
 disable_error_code = "misc"
 
@@ -203,4 +214,13 @@ addopts = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
 ]

@@ -1,7 +1,8 @@
 """Tests for the storage layer."""
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 from service_monitor.models import ServiceStatus
 from service_monitor.storage import InMemoryStorage
@@ -22,10 +23,7 @@ def test_storage_initialization(storage):
 def test_update_new_service(storage):
     """Test updating a service that doesn't exist yet."""
     service = storage.update_service(
-        service_name="new-service",
-        status=ServiceStatus.UP,
-        message="Initial startup",
-        metadata={"version": "1.0.0"}
+        service_name="new-service", status=ServiceStatus.UP, message="Initial startup", metadata={"version": "1.0.0"}
     )
 
     assert service.service_name == "new-service"
@@ -40,9 +38,7 @@ def test_update_existing_service(storage):
     """Test updating a service that already exists."""
     # First check-in
     service1 = storage.update_service(
-        service_name="existing-service",
-        status=ServiceStatus.UP,
-        message="First check-in"
+        service_name="existing-service", status=ServiceStatus.UP, message="First check-in"
     )
     first_checkin_time = service1.last_check_in
 
@@ -51,7 +47,7 @@ def test_update_existing_service(storage):
         service_name="existing-service",
         status=ServiceStatus.DEGRADED,
         message="Performance issues",
-        metadata={"load": "high"}
+        metadata={"load": "high"},
     )
 
     assert service2.service_name == "existing-service"
@@ -66,16 +62,14 @@ def test_update_service_metadata_merge(storage):
     """Test that metadata is merged on subsequent updates."""
     # First check-in with initial metadata
     storage.update_service(
-        service_name="metadata-service",
-        status=ServiceStatus.UP,
-        metadata={"version": "1.0.0", "region": "us-west"}
+        service_name="metadata-service", status=ServiceStatus.UP, metadata={"version": "1.0.0", "region": "us-west"}
     )
 
     # Second check-in with additional metadata
     service = storage.update_service(
         service_name="metadata-service",
         status=ServiceStatus.UP,
-        metadata={"load": "low", "region": "us-east"}  # region should be updated
+        metadata={"load": "low", "region": "us-east"},  # region should be updated
     )
 
     assert service.metadata["version"] == "1.0.0"  # preserved
@@ -107,7 +101,7 @@ def test_get_all_services(storage):
     services_data = [
         ("service-1", ServiceStatus.UP),
         ("service-2", ServiceStatus.DOWN),
-        ("service-3", ServiceStatus.DEGRADED)
+        ("service-3", ServiceStatus.DEGRADED),
     ]
 
     for name, status in services_data:
@@ -150,7 +144,7 @@ def test_get_services_by_status(storage):
         ("up-service-2", ServiceStatus.UP),
         ("down-service", ServiceStatus.DOWN),
         ("degraded-service", ServiceStatus.DEGRADED),
-        ("unknown-service", ServiceStatus.UNKNOWN)
+        ("unknown-service", ServiceStatus.UNKNOWN),
     ]
 
     for name, status in services_data:
@@ -199,21 +193,13 @@ def test_get_service_count(storage):
 
 def test_service_none_metadata(storage):
     """Test service update with None metadata."""
-    service = storage.update_service(
-        service_name="no-metadata-service",
-        status=ServiceStatus.UP,
-        metadata=None
-    )
+    service = storage.update_service(service_name="no-metadata-service", status=ServiceStatus.UP, metadata=None)
 
     assert service.metadata == {}
 
 
 def test_service_empty_metadata(storage):
     """Test service update with empty metadata."""
-    service = storage.update_service(
-        service_name="empty-metadata-service",
-        status=ServiceStatus.UP,
-        metadata={}
-    )
+    service = storage.update_service(service_name="empty-metadata-service", status=ServiceStatus.UP, metadata={})
 
     assert service.metadata == {}

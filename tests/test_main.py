@@ -4,7 +4,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from service_monitor.main import app, reset_storage
-from service_monitor.models import ServiceStatus
 
 
 @pytest.fixture
@@ -34,7 +33,7 @@ def test_service_checkin_success(client):
         "service_name": "test-service",
         "status": "up",
         "message": "Service is running normally",
-        "metadata": {"version": "1.0.0", "region": "us-west-2"}
+        "metadata": {"version": "1.0.0", "region": "us-west-2"},
     }
 
     response = client.post("/services/checkin", json=checkin_data)
@@ -51,10 +50,7 @@ def test_service_checkin_success(client):
 
 def test_service_checkin_empty_name(client):
     """Test service check-in with empty service name."""
-    checkin_data = {
-        "service_name": "",
-        "status": "up"
-    }
+    checkin_data = {"service_name": "", "status": "up"}
 
     response = client.post("/services/checkin", json=checkin_data)
     assert response.status_code == 400
@@ -63,10 +59,7 @@ def test_service_checkin_empty_name(client):
 
 def test_service_checkin_whitespace_name(client):
     """Test service check-in with whitespace-only service name."""
-    checkin_data = {
-        "service_name": "   ",
-        "status": "up"
-    }
+    checkin_data = {"service_name": "   ", "status": "up"}
 
     response = client.post("/services/checkin", json=checkin_data)
     assert response.status_code == 400
@@ -74,10 +67,7 @@ def test_service_checkin_whitespace_name(client):
 
 def test_multiple_checkins_same_service(client):
     """Test multiple check-ins for the same service."""
-    checkin_data = {
-        "service_name": "persistent-service",
-        "status": "up"
-    }
+    checkin_data = {"service_name": "persistent-service", "status": "up"}
 
     # First check-in
     response1 = client.post("/services/checkin", json=checkin_data)
@@ -110,7 +100,7 @@ def test_get_all_services_with_data(client):
     services = [
         {"service_name": "service-1", "status": "up"},
         {"service_name": "service-2", "status": "down"},
-        {"service_name": "service-3", "status": "degraded"}
+        {"service_name": "service-3", "status": "degraded"},
     ]
 
     for service in services:
@@ -130,11 +120,7 @@ def test_get_all_services_with_data(client):
 def test_get_specific_service_success(client):
     """Test getting a specific service that exists."""
     # First, add a service
-    checkin_data = {
-        "service_name": "specific-service",
-        "status": "up",
-        "message": "Running well"
-    }
+    checkin_data = {"service_name": "specific-service", "status": "up", "message": "Running well"}
     client.post("/services/checkin", json=checkin_data)
 
     # Then retrieve it
@@ -186,7 +172,7 @@ def test_get_services_by_status_valid(client):
         {"service_name": "up-service-1", "status": "up"},
         {"service_name": "up-service-2", "status": "up"},
         {"service_name": "down-service", "status": "down"},
-        {"service_name": "degraded-service", "status": "degraded"}
+        {"service_name": "degraded-service", "status": "degraded"},
     ]
 
     for service in services:
@@ -222,10 +208,7 @@ def test_service_status_enum_values(client):
     valid_statuses = ["up", "down", "degraded", "unknown"]
 
     for status in valid_statuses:
-        checkin_data = {
-            "service_name": f"service-{status}",
-            "status": status
-        }
+        checkin_data = {"service_name": f"service-{status}", "status": status}
         response = client.post("/services/checkin", json=checkin_data)
         assert response.status_code == 201
         assert response.json()["status"] == status
@@ -233,10 +216,7 @@ def test_service_status_enum_values(client):
 
 def test_invalid_service_status(client):
     """Test service check-in with invalid status."""
-    checkin_data = {
-        "service_name": "test-service",
-        "status": "invalid-status"
-    }
+    checkin_data = {"service_name": "test-service", "status": "invalid-status"}
 
     response = client.post("/services/checkin", json=checkin_data)
     assert response.status_code == 422  # Pydantic validation error

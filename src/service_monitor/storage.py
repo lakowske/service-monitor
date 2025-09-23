@@ -1,8 +1,8 @@
 """Storage layer for service monitoring data."""
 
 import logging
-from datetime import datetime
-from typing import Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Optional
 
 from .models import ServiceInfo, ServiceStatus
 
@@ -14,7 +14,7 @@ class InMemoryStorage:
 
     def __init__(self) -> None:
         """Initialize the in-memory storage."""
-        self._services: Dict[str, ServiceInfo] = {}
+        self._services: dict[str, ServiceInfo] = {}
         logger.info("InMemoryStorage initialized - storage_type: in_memory")
 
     def update_service(
@@ -22,7 +22,7 @@ class InMemoryStorage:
         service_name: str,
         status: ServiceStatus,
         message: Optional[str] = None,
-        metadata: Optional[Dict[str, str]] = None,
+        metadata: Optional[dict[str, str]] = None,
     ) -> ServiceInfo:
         """Update or create a service entry.
 
@@ -40,7 +40,7 @@ class InMemoryStorage:
             f"message: {message}, metadata_keys: {list(metadata.keys()) if metadata else []}"
         )
 
-        current_time = datetime.now()
+        current_time = datetime.now(timezone.utc)
 
         if service_name in self._services:
             service = self._services[service_name]
@@ -49,6 +49,8 @@ class InMemoryStorage:
             service.message = message
             service.check_in_count += 1
             if metadata:
+                if service.metadata is None:
+                    service.metadata = {}
                 service.metadata.update(metadata)
             logger.info(
                 f"Service updated - service_name: {service_name}, status: {status.value}, "
@@ -87,7 +89,7 @@ class InMemoryStorage:
             logger.warning(f"Service not found - service_name: {service_name}")
         return service
 
-    def get_all_services(self) -> List[ServiceInfo]:
+    def get_all_services(self) -> list[ServiceInfo]:
         """Get information about all registered services.
 
         Returns:
@@ -110,11 +112,10 @@ class InMemoryStorage:
             del self._services[service_name]
             logger.info(f"Service removed - service_name: {service_name}")
             return True
-        else:
-            logger.warning(f"Service removal failed - service_name: {service_name} not found")
-            return False
+        logger.warning(f"Service removal failed - service_name: {service_name} not found")
+        return False
 
-    def get_services_by_status(self, status: ServiceStatus) -> List[ServiceInfo]:
+    def get_services_by_status(self, status: ServiceStatus) -> list[ServiceInfo]:
         """Get all services with a specific status.
 
         Args:

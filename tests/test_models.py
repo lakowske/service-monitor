@@ -1,10 +1,11 @@
 """Tests for the data models."""
 
+from datetime import datetime, timezone
+
 import pytest
-from datetime import datetime
 from pydantic import ValidationError
 
-from service_monitor.models import ServiceCheckIn, ServiceInfo, ServiceStatus, HealthResponse
+from service_monitor.models import HealthResponse, ServiceCheckIn, ServiceInfo, ServiceStatus
 
 
 def test_service_status_enum():
@@ -21,7 +22,7 @@ def test_service_checkin_valid():
         service_name="test-service",
         status=ServiceStatus.UP,
         message="Service is running",
-        metadata={"version": "1.0.0", "region": "us-west"}
+        metadata={"version": "1.0.0", "region": "us-west"},
     )
 
     assert checkin.service_name == "test-service"
@@ -33,10 +34,7 @@ def test_service_checkin_valid():
 
 def test_service_checkin_minimal():
     """Test ServiceCheckIn with minimal required fields."""
-    checkin = ServiceCheckIn(
-        service_name="minimal-service",
-        status=ServiceStatus.DOWN
-    )
+    checkin = ServiceCheckIn(service_name="minimal-service", status=ServiceStatus.DOWN)
 
     assert checkin.service_name == "minimal-service"
     assert checkin.status == ServiceStatus.DOWN
@@ -47,10 +45,7 @@ def test_service_checkin_minimal():
 def test_service_checkin_invalid_status():
     """Test ServiceCheckIn with invalid status."""
     with pytest.raises(ValidationError) as exc_info:
-        ServiceCheckIn(
-            service_name="test-service",
-            status="invalid-status"
-        )
+        ServiceCheckIn(service_name="test-service", status="invalid-status")
 
     errors = exc_info.value.errors()
     assert len(errors) == 1
@@ -59,23 +54,20 @@ def test_service_checkin_invalid_status():
 
 def test_service_checkin_empty_service_name():
     """Test ServiceCheckIn allows empty service name (validation happens at API level)."""
-    checkin = ServiceCheckIn(
-        service_name="",
-        status=ServiceStatus.UP
-    )
+    checkin = ServiceCheckIn(service_name="", status=ServiceStatus.UP)
     assert checkin.service_name == ""
 
 
 def test_service_info_creation():
     """Test ServiceInfo creation."""
-    timestamp = datetime.now()
+    timestamp = datetime.now(timezone.utc)
     service = ServiceInfo(
         service_name="info-service",
         status=ServiceStatus.DEGRADED,
         last_check_in=timestamp,
         message="Performance issues",
         metadata={"load": "high"},
-        check_in_count=5
+        check_in_count=5,
     )
 
     assert service.service_name == "info-service"
@@ -88,12 +80,8 @@ def test_service_info_creation():
 
 def test_service_info_defaults():
     """Test ServiceInfo with default values."""
-    timestamp = datetime.now()
-    service = ServiceInfo(
-        service_name="default-service",
-        status=ServiceStatus.UP,
-        last_check_in=timestamp
-    )
+    timestamp = datetime.now(timezone.utc)
+    service = ServiceInfo(service_name="default-service", status=ServiceStatus.UP, last_check_in=timestamp)
 
     assert service.service_name == "default-service"
     assert service.status == ServiceStatus.UP
@@ -105,13 +93,8 @@ def test_service_info_defaults():
 
 def test_health_response_creation():
     """Test HealthResponse creation."""
-    timestamp = datetime.now()
-    health = HealthResponse(
-        status="healthy",
-        timestamp=timestamp,
-        uptime_seconds=123.45,
-        monitored_services=10
-    )
+    timestamp = datetime.now(timezone.utc)
+    health = HealthResponse(status="healthy", timestamp=timestamp, uptime_seconds=123.45, monitored_services=10)
 
     assert health.status == "healthy"
     assert health.timestamp == timestamp
@@ -121,34 +104,21 @@ def test_health_response_creation():
 
 def test_health_response_validation():
     """Test HealthResponse field validation."""
-    timestamp = datetime.now()
+    timestamp = datetime.now(timezone.utc)
 
     # Test with negative uptime (should be allowed)
-    health = HealthResponse(
-        status="healthy",
-        timestamp=timestamp,
-        uptime_seconds=-1.0,
-        monitored_services=0
-    )
+    health = HealthResponse(status="healthy", timestamp=timestamp, uptime_seconds=-1.0, monitored_services=0)
     assert health.uptime_seconds == -1.0
 
     # Test with negative monitored services (should be allowed)
-    health = HealthResponse(
-        status="unhealthy",
-        timestamp=timestamp,
-        uptime_seconds=100.0,
-        monitored_services=-1
-    )
+    health = HealthResponse(status="unhealthy", timestamp=timestamp, uptime_seconds=100.0, monitored_services=-1)
     assert health.monitored_services == -1
 
 
 def test_service_checkin_json_serialization():
     """Test ServiceCheckIn JSON serialization."""
     checkin = ServiceCheckIn(
-        service_name="json-service",
-        status=ServiceStatus.UP,
-        message="All good",
-        metadata={"key": "value"}
+        service_name="json-service", status=ServiceStatus.UP, message="All good", metadata={"key": "value"}
     )
 
     json_data = checkin.model_dump()
@@ -160,14 +130,14 @@ def test_service_checkin_json_serialization():
 
 def test_service_info_json_serialization():
     """Test ServiceInfo JSON serialization."""
-    timestamp = datetime(2023, 1, 1, 12, 0, 0)
+    timestamp = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     service = ServiceInfo(
         service_name="json-info-service",
         status=ServiceStatus.DOWN,
         last_check_in=timestamp,
         message="Service offline",
         metadata={"reason": "maintenance"},
-        check_in_count=3
+        check_in_count=3,
     )
 
     json_data = service.model_dump()
@@ -181,10 +151,7 @@ def test_service_info_json_serialization():
 def test_all_service_status_values():
     """Test that all ServiceStatus values work in ServiceCheckIn."""
     for status in ServiceStatus:
-        checkin = ServiceCheckIn(
-            service_name=f"service-{status.value}",
-            status=status
-        )
+        checkin = ServiceCheckIn(service_name=f"service-{status.value}", status=status)
         assert checkin.status == status
 
 
@@ -192,9 +159,7 @@ def test_metadata_type_validation():
     """Test metadata field type validation."""
     # Valid metadata (Dict[str, str])
     checkin = ServiceCheckIn(
-        service_name="metadata-service",
-        status=ServiceStatus.UP,
-        metadata={"key1": "value1", "key2": "value2"}
+        service_name="metadata-service", status=ServiceStatus.UP, metadata={"key1": "value1", "key2": "value2"}
     )
     assert isinstance(checkin.metadata, dict)
 
@@ -203,5 +168,5 @@ def test_metadata_type_validation():
         ServiceCheckIn(
             service_name="invalid-metadata-service",
             status=ServiceStatus.UP,
-            metadata={"key1": 123, "key2": True}  # Non-string values
+            metadata={"key1": 123, "key2": True},  # Non-string values
         )

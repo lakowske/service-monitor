@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -25,7 +25,7 @@ class ServiceCheckIn(BaseModel):
     service_name: str = Field(..., description="Name of the service checking in")
     status: ServiceStatus = Field(..., description="Current status of the service")
     message: Optional[str] = Field(None, description="Optional status message")
-    metadata: Optional[Dict[str, str]] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Optional[dict[str, str]] = Field(default_factory=dict, description="Additional metadata")
 
 
 class ServiceInfo(BaseModel):
@@ -35,7 +35,7 @@ class ServiceInfo(BaseModel):
     status: ServiceStatus = Field(..., description="Current status of the service")
     last_check_in: datetime = Field(..., description="Timestamp of last check-in")
     message: Optional[str] = Field(None, description="Last status message")
-    metadata: Optional[Dict[str, str]] = Field(default_factory=dict, description="Service metadata")
+    metadata: Optional[dict[str, str]] = Field(default_factory=dict, description="Service metadata")
     check_in_count: int = Field(default=0, description="Total number of check-ins")
 
 

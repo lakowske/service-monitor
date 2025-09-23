@@ -2,7 +2,6 @@
 
 import logging
 import sys
-from typing import Optional
 
 import uvicorn
 
@@ -19,8 +18,7 @@ def start_server(host: str = "0.0.0.0", port: int = 8000, log_level: str = "info
         reload: Enable auto-reload for development
     """
     logger.info(
-        f"Starting Service Monitor server - host: {host}, port: {port}, "
-        f"log_level: {log_level}, reload: {reload}"
+        f"Starting Service Monitor server - host: {host}, port: {port}, " f"log_level: {log_level}, reload: {reload}"
     )
 
     try:
