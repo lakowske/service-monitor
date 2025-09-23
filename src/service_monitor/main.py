@@ -3,11 +3,14 @@
 import logging
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
-from .models import HealthResponse, ServiceCheckIn, ServiceInfo
+from .models import HealthResponse, ServiceCheckIn, ServiceInfo, ServiceStatus
 from .storage import InMemoryStorage
 
 # Configure logging
@@ -29,6 +32,11 @@ app = FastAPI(
 # Initialize storage
 storage = InMemoryStorage()
 
+# Setup templates and static files
+BASE_DIR = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
 
 def reset_storage() -> None:
     """Reset the storage for testing purposes."""
@@ -40,6 +48,48 @@ def reset_storage() -> None:
 app_start_time = time.time()
 
 logger.info("Service Monitor application starting - version: 0.1.0")
+
+
+# Web Interface Routes
+@app.get("/", response_class=HTMLResponse)
+async def dashboard(request: Request) -> HTMLResponse:
+    """Main dashboard showing all services."""
+    services = storage.get_all_services()
+
+    # Count services by status
+    status_counts = {status.value: 0 for status in ServiceStatus}
+    for service in services:
+        status_counts[service.status.value] += 1
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "services": services,
+            "total_services": len(services),
+            "status_counts": status_counts,
+            "uptime_seconds": time.time() - app_start_time,
+        },
+    )
+
+
+@app.get("/service/{service_name}", response_class=HTMLResponse)
+async def service_detail(request: Request, service_name: str) -> HTMLResponse:
+    """Detailed view of a specific service."""
+    service = storage.get_service(service_name)
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service '{service_name}' not found",
+        )
+
+    return templates.TemplateResponse(
+        "service_detail.html",
+        {
+            "request": request,
+            "service": service,
+        },
+    )
 
 
 @app.get("/health", response_model=HealthResponse)

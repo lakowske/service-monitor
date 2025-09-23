@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Monitor Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="title">🔍 Service Monitor</h1>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total Services:</span>
+                    <span class="stat-value">{{ total_services }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Uptime:</span>
+                    <span class="stat-value">{{ "%.1f" | format(uptime_seconds / 3600) }}h</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Last Update:</span>
+                    <span class="stat-value" id="last-update">Now</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Status Overview -->
+            <section class="status-overview">
+                <h2>Status Overview</h2>
+                <div class="status-grid">
+                    <div class="status-card status-up">
+                        <div class="status-icon">✅</div>
+                        <div class="status-info">
+                            <div class="status-count">{{ status_counts.up }}</div>
+                            <div class="status-label">Up</div>
+                        </div>
+                    </div>
+                    <div class="status-card status-down">
+                        <div class="status-icon">❌</div>
+                        <div class="status-info">
+                            <div class="status-count">{{ status_counts.down }}</div>
+                            <div class="status-label">Down</div>
+                        </div>
+                    </div>
+                    <div class="status-card status-degraded">
+                        <div class="status-icon">⚠️</div>
+                        <div class="status-info">
+                            <div class="status-count">{{ status_counts.degraded }}</div>
+                            <div class="status-label">Degraded</div>
+                        </div>
+                    </div>
+                    <div class="status-card status-unknown">
+                        <div class="status-icon">❓</div>
+                        <div class="status-info">
+                            <div class="status-count">{{ status_counts.unknown }}</div>
+                            <div class="status-label">Unknown</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Services List -->
+            <section class="services-section">
+                <div class="section-header">
+                    <h2>Services</h2>
+                    <button class="refresh-btn" onclick="window.location.reload()">🔄 Refresh</button>
+                </div>
+
+                {% if services %}
+                <div class="services-grid">
+                    {% for service in services %}
+                    <div class="service-card service-{{ service.status.value }}" onclick="window.location.href='/service/{{ service.service_name | urlencode }}'">
+                        <div class="service-header">
+                            <h3 class="service-name">{{ service.service_name }}</h3>
+                            <div class="service-status status-{{ service.status.value }}">
+                                {% if service.status.value == 'up' %}✅{% endif %}
+                                {% if service.status.value == 'down' %}❌{% endif %}
+                                {% if service.status.value == 'degraded' %}⚠️{% endif %}
+                                {% if service.status.value == 'unknown' %}❓{% endif %}
+                                {{ service.status.value.title() }}
+                            </div>
+                        </div>
+                        <div class="service-info">
+                            <div class="service-meta">
+                                <div class="meta-item">
+                                    <span class="meta-label">Last Check:</span>
+                                    <span class="meta-value">{{ service.last_check_in.strftime('%H:%M:%S') }}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Check-ins:</span>
+                                    <span class="meta-value">{{ service.check_in_count }}</span>
+                                </div>
+                            </div>
+                            {% if service.message %}
+                            <div class="service-message">{{ service.message }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="service-footer">
+                            <span class="click-hint">Click for details →</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>No Services Monitored</h3>
+                    <p>Services will appear here once they start checking in.</p>
+                    <div class="api-hint">
+                        <strong>API Endpoint:</strong> POST /services/checkin
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-links">
+                <a href="/docs" target="_blank">API Documentation</a>
+                <a href="/health" target="_blank">Health Check</a>
+                <a href="/" onclick="window.location.reload()">Refresh Dashboard</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            window.location.reload();
+        }, 30000);
+
+        // Update last update time
+        function updateLastUpdateTime() {
+            const now = new Date();
+            document.getElementById('last-update').textContent = now.toLocaleTimeString();
+        }
+
+        // Update time every second
+        setInterval(updateLastUpdateTime, 1000);
+        updateLastUpdateTime();
+    </script>
+</body>
+</html>

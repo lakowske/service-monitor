@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ service.service_name }} - Service Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-nav">
+                <a href="/" class="back-link">← Dashboard</a>
+                <h1 class="title">Service Details</h1>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Service Overview -->
+            <section class="service-detail-header">
+                <div class="service-title-section">
+                    <h2 class="service-title">{{ service.service_name }}</h2>
+                    <div class="service-status-badge status-{{ service.status.value }}">
+                        {% if service.status.value == 'up' %}✅{% endif %}
+                        {% if service.status.value == 'down' %}❌{% endif %}
+                        {% if service.status.value == 'degraded' %}⚠️{% endif %}
+                        {% if service.status.value == 'unknown' %}❓{% endif %}
+                        {{ service.status.value.title() }}
+                    </div>
+                </div>
+                {% if service.message %}
+                <div class="service-message-detail">
+                    <strong>Latest Message:</strong> {{ service.message }}
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- Service Statistics -->
+            <section class="service-stats">
+                <h3>Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ service.check_in_count }}</div>
+                            <div class="stat-label">Total Check-ins</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🕒</div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ service.last_check_in.strftime('%Y-%m-%d') }}</div>
+                            <div class="stat-label">Last Check Date</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏰</div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ service.last_check_in.strftime('%H:%M:%S') }}</div>
+                            <div class="stat-label">Last Check Time</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🌐</div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ service.last_check_in.strftime('%Z') or 'UTC' }}</div>
+                            <div class="stat-label">Timezone</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Service Metadata -->
+            {% if service.metadata %}
+            <section class="service-metadata">
+                <h3>Metadata</h3>
+                <div class="metadata-grid">
+                    {% for key, value in service.metadata.items() %}
+                    <div class="metadata-item">
+                        <div class="metadata-key">{{ key }}</div>
+                        <div class="metadata-value">{{ value }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Service Timeline -->
+            <section class="service-timeline">
+                <h3>Service Information</h3>
+                <div class="timeline-container">
+                    <div class="timeline-item">
+                        <div class="timeline-marker timeline-marker-{{ service.status.value }}"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-time">{{ service.last_check_in.strftime('%Y-%m-%d %H:%M:%S UTC') }}</div>
+                            <div class="timeline-title">Current Status: {{ service.status.value.title() }}</div>
+                            {% if service.message %}
+                            <div class="timeline-description">{{ service.message }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker timeline-marker-info"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Service Monitoring Active</div>
+                            <div class="timeline-description">This service has checked in {{ service.check_in_count }} times total</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Actions -->
+            <section class="service-actions">
+                <h3>Actions</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="window.location.reload()">
+                        🔄 Refresh
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.location.href='/'">
+                        📊 Back to Dashboard
+                    </button>
+                    <button class="btn btn-secondary" onclick="showApiInfo()">
+                        🔗 API Info
+                    </button>
+                </div>
+            </section>
+
+            <!-- API Information Modal -->
+            <div id="api-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>API Information</h3>
+                        <button class="modal-close" onclick="hideApiInfo()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <h4>Service Check-in</h4>
+                        <div class="code-block">
+                            <code>POST /services/checkin</code>
+                        </div>
+                        <h4>Get Service Info</h4>
+                        <div class="code-block">
+                            <code>GET /services/{{ service.service_name | urlencode }}</code>
+                        </div>
+                        <h4>Remove Service</h4>
+                        <div class="code-block">
+                            <code>DELETE /services/{{ service.service_name | urlencode }}</code>
+                        </div>
+                        <p><a href="/docs" target="_blank">View full API documentation →</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-links">
+                <a href="/">Dashboard</a>
+                <a href="/docs" target="_blank">API Documentation</a>
+                <a href="/health" target="_blank">Health Check</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function showApiInfo() {
+            document.getElementById('api-modal').style.display = 'block';
+        }
+
+        function hideApiInfo() {
+            document.getElementById('api-modal').style.display = 'none';
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('api-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Auto-refresh every 60 seconds
+        setInterval(() => {
+            window.location.reload();
+        }, 60000);
+    </script>
+</body>
+</html>
