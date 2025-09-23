@@ -1,0 +1,106 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Service Monitor",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/service_monitor/server.py",
+            "args": [
+                "--host", "127.0.0.1",
+                "--port", "8000",
+                "--log-level", "debug",
+                "--reload"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "redirectOutput": true
+        },
+        {
+            "name": "Debug Service Monitor (Production Mode)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/service_monitor/server.py",
+            "args": [
+                "--host", "0.0.0.0",
+                "--port", "8000",
+                "--log-level", "info"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "redirectOutput": true
+        },
+        {
+            "name": "Debug Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${workspaceFolder}/tests",
+                "-v",
+                "--tb=short"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug Single Test File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${file}",
+                "-v",
+                "--tb=short"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug FastAPI with Uvicorn",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "service_monitor.main:app",
+                "--host", "127.0.0.1",
+                "--port", "8000",
+                "--log-level", "debug",
+                "--reload"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "redirectOutput": true
+        }
+    ]
+}

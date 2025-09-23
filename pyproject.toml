@@ -23,6 +23,8 @@ classifiers = [
 dependencies = [
     "requests",
     "pydantic>=2.0.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -35,6 +37,8 @@ where = ["src"]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.23.0",   # Async test support
+    "httpx>=0.25.0",             # HTTP client for testing FastAPI
     "ruff>=0.8.0",
     "mdformat>=0.7.0",           # Markdown formatter
     "mdformat-gfm>=0.3.0",      # GitHub Flavored Markdown support
@@ -47,6 +51,9 @@ dev = [
     "mkdocstrings[python]>=0.24.0",  # API documentation
     "uv>=0.4.0",                 # Fast Python package manager
 ]
+
+[project.scripts]
+service-monitor = "service_monitor.server:main"
 
 [project.urls]
 Homepage = "https://github.com/lakowske/service-monitor"
