@@ -22,7 +22,7 @@ def test_storage_initialization(storage):
 
 def test_update_new_service(storage):
     """Test updating a service that doesn't exist yet."""
-    service = storage.update_service(
+    service, previous_status = storage.update_service(
         service_name="new-service", status=ServiceStatus.UP, message="Initial startup", metadata={"version": "1.0.0"}
     )
 
@@ -32,18 +32,19 @@ def test_update_new_service(storage):
     assert service.metadata["version"] == "1.0.0"
     assert service.check_in_count == 1
     assert isinstance(service.last_check_in, datetime)
+    assert previous_status is None  # New service, so no previous status
 
 
 def test_update_existing_service(storage):
     """Test updating a service that already exists."""
     # First check-in
-    service1 = storage.update_service(
+    service1, previous_status1 = storage.update_service(
         service_name="existing-service", status=ServiceStatus.UP, message="First check-in"
     )
     first_checkin_time = service1.last_check_in
 
     # Second check-in
-    service2 = storage.update_service(
+    service2, previous_status2 = storage.update_service(
         service_name="existing-service",
         status=ServiceStatus.DEGRADED,
         message="Performance issues",
@@ -56,25 +57,28 @@ def test_update_existing_service(storage):
     assert service2.metadata["load"] == "high"
     assert service2.check_in_count == 2
     assert service2.last_check_in > first_checkin_time
+    assert previous_status1 is None  # First service creation
+    assert previous_status2 == ServiceStatus.UP  # Status changed from UP to DEGRADED
 
 
 def test_update_service_metadata_merge(storage):
     """Test that metadata is merged on subsequent updates."""
     # First check-in with initial metadata
-    storage.update_service(
+    service1, _ = storage.update_service(
         service_name="metadata-service", status=ServiceStatus.UP, metadata={"version": "1.0.0", "region": "us-west"}
     )
 
     # Second check-in with additional metadata
-    service = storage.update_service(
+    service2, previous_status = storage.update_service(
         service_name="metadata-service",
         status=ServiceStatus.UP,
         metadata={"load": "low", "region": "us-east"},  # region should be updated
     )
 
-    assert service.metadata["version"] == "1.0.0"  # preserved
-    assert service.metadata["region"] == "us-east"  # updated
-    assert service.metadata["load"] == "low"  # added
+    assert service2.metadata["version"] == "1.0.0"  # preserved
+    assert service2.metadata["region"] == "us-east"  # updated
+    assert service2.metadata["load"] == "low"  # added
+    assert previous_status is None  # Status didn't change (UP to UP)
 
 
 def test_get_service_existing(storage):
@@ -193,13 +197,19 @@ def test_get_service_count(storage):
 
 def test_service_none_metadata(storage):
     """Test service update with None metadata."""
-    service = storage.update_service(service_name="no-metadata-service", status=ServiceStatus.UP, metadata=None)
+    service, previous_status = storage.update_service(
+        service_name="no-metadata-service", status=ServiceStatus.UP, metadata=None
+    )
 
     assert service.metadata == {}
+    assert previous_status is None
 
 
 def test_service_empty_metadata(storage):
     """Test service update with empty metadata."""
-    service = storage.update_service(service_name="empty-metadata-service", status=ServiceStatus.UP, metadata={})
+    service, previous_status = storage.update_service(
+        service_name="empty-metadata-service", status=ServiceStatus.UP, metadata={}
+    )
 
     assert service.metadata == {}
+    assert previous_status is None

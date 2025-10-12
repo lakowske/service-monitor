@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .models import HealthResponse, ServiceCheckIn, ServiceInfo, ServiceStatus
+from .notifications import notification_service
 from .storage import InMemoryStorage
 
 # Configure logging
@@ -48,6 +49,13 @@ def reset_storage() -> None:
 app_start_time = time.time()
 
 logger.info("Service Monitor application starting - version: 0.1.0")
+
+
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    """Handle application shutdown."""
+    logger.info("Service Monitor shutting down")
+    await notification_service.close()
 
 
 # Web Interface Routes
@@ -142,15 +150,27 @@ async def service_checkin(checkin: ServiceCheckIn) -> ServiceInfo:
     )
 
     try:
-        service_info = storage.update_service(
+        service_info, previous_status = storage.update_service(
             service_name=checkin.service_name,
             status=checkin.status,
             message=checkin.message,
             metadata=checkin.metadata,
         )
+
+        # Send notification if status changed to a problem state or recovered
+        if previous_status is not None:
+            try:
+                await notification_service.send_service_notification(service_info, previous_status)
+            except Exception as notification_error:
+                logger.error(
+                    f"Failed to send notification for {checkin.service_name}: {str(notification_error)}", exc_info=True
+                )
+                # Don't fail the check-in if notification fails
+
         logger.info(
             f"Service check-in processed successfully - service_name: {checkin.service_name}, "
-            f"check_in_count: {service_info.check_in_count}"
+            f"check_in_count: {service_info.check_in_count}, "
+            f"status_changed: {previous_status is not None}"
         )
         return service_info
     except Exception as e:
@@ -246,6 +266,73 @@ async def get_services_by_status(status_filter: str) -> list[ServiceInfo]:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid status filter: {status_filter}. Valid values: up, down, degraded, unknown",
         ) from e
+
+
+# Notification Management Endpoints
+@app.get("/notifications/history")
+async def get_notification_history() -> dict:
+    """Get notification history for all services."""
+    history = notification_service.get_notification_history()
+    return {
+        "success": True,
+        "history": {
+            service_name: {
+                "service_name": hist.service_name,
+                "last_notification": hist.last_notification.isoformat(),
+                "last_status": hist.last_status.value,
+                "notification_count": hist.notification_count,
+            }
+            for service_name, hist in history.items()
+        },
+        "total_services": len(history),
+    }
+
+
+@app.post("/notifications/test")
+async def send_test_notification(service_name: str = "test-service") -> dict:
+    """Send a test notification for debugging purposes."""
+    # Create a test service with DOWN status
+    test_service = ServiceInfo(
+        service_name=service_name,
+        status=ServiceStatus.DOWN,
+        last_check_in=datetime.now(timezone.utc),
+        message="This is a test notification from the Service Monitor",
+        metadata={"source": "test_endpoint", "version": "test"},
+        check_in_count=1,
+    )
+
+    try:
+        success = await notification_service.send_service_notification(test_service, ServiceStatus.UP)
+        return {
+            "success": success,
+            "message": f"Test notification {'sent' if success else 'failed'} for {service_name}",
+        }
+    except Exception as e:
+        logger.error(f"Test notification failed: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "message": f"Test notification failed: {str(e)}",
+        }
+
+
+@app.delete("/notifications/history/{service_name}")
+async def clear_service_notification_history(service_name: str) -> dict:
+    """Clear notification history for a specific service."""
+    notification_service.clear_notification_history(service_name)
+    return {
+        "success": True,
+        "message": f"Notification history cleared for {service_name}",
+    }
+
+
+@app.delete("/notifications/history")
+async def clear_all_notification_history() -> dict:
+    """Clear notification history for all services."""
+    notification_service.clear_notification_history()
+    return {
+        "success": True,
+        "message": "All notification history cleared",
+    }
 
 
 @app.exception_handler(Exception)

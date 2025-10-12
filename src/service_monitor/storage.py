@@ -23,7 +23,7 @@ class InMemoryStorage:
         status: ServiceStatus,
         message: Optional[str] = None,
         metadata: Optional[dict[str, str]] = None,
-    ) -> ServiceInfo:
+    ) -> tuple[ServiceInfo, Optional[ServiceStatus]]:
         """Update or create a service entry.
 
         Args:
@@ -33,7 +33,7 @@ class InMemoryStorage:
             metadata: Optional service metadata
 
         Returns:
-            Updated ServiceInfo object
+            Tuple of (updated ServiceInfo object, previous status if changed)
         """
         logger.debug(
             f"Updating service - service_name: {service_name}, status: {status.value}, "
@@ -41,9 +41,15 @@ class InMemoryStorage:
         )
 
         current_time = datetime.now(timezone.utc)
+        previous_status: Optional[ServiceStatus] = None
 
         if service_name in self._services:
             service = self._services[service_name]
+            previous_status = service.status
+
+            # Check if status changed
+            status_changed = previous_status != status
+
             service.status = status
             service.last_check_in = current_time
             service.message = message
@@ -52,10 +58,18 @@ class InMemoryStorage:
                 if service.metadata is None:
                     service.metadata = {}
                 service.metadata.update(metadata)
-            logger.info(
-                f"Service updated - service_name: {service_name}, status: {status.value}, "
-                f"check_in_count: {service.check_in_count}"
-            )
+
+            if status_changed:
+                logger.info(
+                    f"Service status changed - service_name: {service_name}, "
+                    f"previous: {previous_status.value}, current: {status.value}, "
+                    f"check_in_count: {service.check_in_count}"
+                )
+            else:
+                logger.debug(
+                    f"Service updated - service_name: {service_name}, status: {status.value}, "
+                    f"check_in_count: {service.check_in_count}"
+                )
         else:
             service = ServiceInfo(
                 service_name=service_name,
@@ -71,7 +85,8 @@ class InMemoryStorage:
                 f"timestamp: {current_time}"
             )
 
-        return service
+        # Return previous status only if it actually changed
+        return service, previous_status if previous_status != status else None
 
     def get_service(self, service_name: str) -> Optional[ServiceInfo]:
         """Get information about a specific service.

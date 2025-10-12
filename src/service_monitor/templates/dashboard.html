@@ -118,6 +118,60 @@
                 </div>
                 {% endif %}
             </section>
+
+            <!-- Notification Management -->
+            <section class="notification-section">
+                <div class="section-header">
+                    <h2>📧 Email Notifications</h2>
+                    <button class="btn-secondary" onclick="sendTestNotification()">Send Test Email</button>
+                </div>
+
+                <div class="notification-info">
+                    <div class="info-card">
+                        <div class="info-icon">📬</div>
+                        <div class="info-content">
+                            <div class="info-title">Auto-Alerts Enabled</div>
+                            <div class="info-description">
+                                Automatic emails sent when services go DOWN or DEGRADED, and when they recover.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">⏱️</div>
+                        <div class="info-content">
+                            <div class="info-title">Smart Cooldown</div>
+                            <div class="info-description">
+                                Maximum 1 notification per service per hour to prevent spam.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🎯</div>
+                        <div class="info-content">
+                            <div class="info-title">Rich Content</div>
+                            <div class="info-description">
+                                HTML emails with service details, metadata, and direct links to this dashboard.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="notification-actions">
+                    <button class="btn btn-secondary" onclick="viewNotificationHistory()">
+                        📋 View History
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearNotificationHistory()">
+                        🗑️ Clear History
+                    </button>
+                </div>
+
+                <div id="notification-history" class="notification-history" style="display: none;">
+                    <h3>Notification History</h3>
+                    <div id="history-content">
+                        <!-- History will be loaded here -->
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 
@@ -146,6 +200,79 @@
         // Update time every second
         setInterval(updateLastUpdateTime, 1000);
         updateLastUpdateTime();
+
+        // Notification management functions
+        async function sendTestNotification() {
+            try {
+                const response = await fetch('/notifications/test', { method: 'POST' });
+                const result = await response.json();
+                alert(result.message);
+            } catch (error) {
+                alert('Failed to send test notification: ' + error.message);
+            }
+        }
+
+        async function viewNotificationHistory() {
+            const historySection = document.getElementById('notification-history');
+            const historyContent = document.getElementById('history-content');
+
+            try {
+                const response = await fetch('/notifications/history');
+                const result = await response.json();
+
+                if (result.success && Object.keys(result.history).length > 0) {
+                    let html = '<div class="history-grid">';
+                    for (const [serviceName, hist] of Object.entries(result.history)) {
+                        const lastNotification = new Date(hist.last_notification).toLocaleString();
+                        html += `
+                            <div class="history-item">
+                                <div class="history-service">${hist.service_name}</div>
+                                <div class="history-details">
+                                    <div>Status: <span class="status-${hist.last_status}">${hist.last_status.toUpperCase()}</span></div>
+                                    <div>Last: ${lastNotification}</div>
+                                    <div>Count: ${hist.notification_count}</div>
+                                </div>
+                                <button class="btn-small" onclick="clearServiceHistory('${serviceName}')">Clear</button>
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+                    historyContent.innerHTML = html;
+                } else {
+                    historyContent.innerHTML = '<p class="empty-message">No notification history available.</p>';
+                }
+
+                historySection.style.display = historySection.style.display === 'none' ? 'block' : 'none';
+            } catch (error) {
+                alert('Failed to load notification history: ' + error.message);
+            }
+        }
+
+        async function clearNotificationHistory() {
+            if (confirm('Are you sure you want to clear all notification history?')) {
+                try {
+                    const response = await fetch('/notifications/history', { method: 'DELETE' });
+                    const result = await response.json();
+                    alert(result.message);
+                    document.getElementById('notification-history').style.display = 'none';
+                } catch (error) {
+                    alert('Failed to clear notification history: ' + error.message);
+                }
+            }
+        }
+
+        async function clearServiceHistory(serviceName) {
+            if (confirm(`Clear notification history for ${serviceName}?`)) {
+                try {
+                    const response = await fetch(`/notifications/history/${serviceName}`, { method: 'DELETE' });
+                    const result = await response.json();
+                    alert(result.message);
+                    viewNotificationHistory(); // Refresh the view
+                } catch (error) {
+                    alert('Failed to clear service history: ' + error.message);
+                }
+            }
+        }
     </script>
 </body>
 </html>
