@@ -58,8 +58,29 @@ class EmailNotificationService:
             logger.debug(f"No status change for {service.service_name} - skipping notification")
             return False
 
-        # Check cooldown period
-        if history:
+        # Check if this is a recovery notification (UP from DOWN/DEGRADED)
+        is_recovery = (
+            previous_status in [ServiceStatus.DOWN, ServiceStatus.DEGRADED] and service.status == ServiceStatus.UP
+        )
+
+        # Check if this is an alert notification (DOWN or DEGRADED)
+        is_alert = service.status in [ServiceStatus.DOWN, ServiceStatus.DEGRADED]
+
+        # Determine if we should send this notification type
+        should_send = False
+        if is_alert:
+            logger.info(f"Alert notification triggered for {service.service_name} - status: {service.status.value}")
+            should_send = True
+        elif is_recovery and config.notifications.send_recovery_notifications:
+            logger.info(f"Recovery notification triggered for {service.service_name}")
+            should_send = True
+        else:
+            logger.debug(f"No notification needed for {service.service_name} - status: {service.status.value}")
+            return False
+
+        # Apply cooldown check ONLY for alert notifications, NOT for recovery notifications
+        # Recovery notifications bypass cooldown so users know immediately when services recover
+        if should_send and is_alert and history:
             time_since_last = (current_time - history.last_notification).total_seconds() / 60
             if time_since_last < config.notifications.cooldown_minutes:
                 logger.debug(
@@ -68,22 +89,7 @@ class EmailNotificationService:
                 )
                 return False
 
-        # Send notification for status changes to DOWN or DEGRADED
-        if service.status in [ServiceStatus.DOWN, ServiceStatus.DEGRADED]:
-            logger.info(f"Alert notification triggered for {service.service_name} - status: {service.status.value}")
-            return True
-
-        # Send recovery notification if enabled and service recovered
-        if (
-            config.notifications.send_recovery_notifications
-            and previous_status in [ServiceStatus.DOWN, ServiceStatus.DEGRADED]
-            and service.status == ServiceStatus.UP
-        ):
-            logger.info(f"Recovery notification triggered for {service.service_name}")
-            return True
-
-        logger.debug(f"No notification needed for {service.service_name} - status: {service.status.value}")
-        return False
+        return should_send
 
     def _generate_email_content(self, service: ServiceInfo, is_recovery: bool = False) -> tuple[str, str, str]:
         """Generate email subject, plain text, and HTML content."""

@@ -170,3 +170,69 @@ async def test_send_email_success(notification_service):
 
         assert result is True
         mock_post.assert_called_once()
+
+
+def test_recovery_notification_bypasses_cooldown(notification_service):
+    """Test that recovery notifications bypass the cooldown period."""
+    # Create a service that went DOWN
+    down_service = ServiceInfo(
+        service_name="test-service",
+        status=ServiceStatus.DOWN,
+        last_check_in=datetime.now(timezone.utc),
+        check_in_count=1,
+    )
+
+    # First notification should be sent (service went DOWN)
+    assert notification_service._should_send_notification(down_service, previous_status=ServiceStatus.UP)
+
+    # Simulate that a notification was just sent (within cooldown period)
+    notification_service._notification_history[down_service.service_name] = NotificationHistory(
+        service_name=down_service.service_name,
+        last_notification=datetime.now(timezone.utc),  # Just now
+        last_status=ServiceStatus.DOWN,
+        notification_count=1,
+    )
+
+    # Service recovers immediately (within cooldown period)
+    recovered_service = ServiceInfo(
+        service_name="test-service",
+        status=ServiceStatus.UP,
+        last_check_in=datetime.now(timezone.utc),
+        check_in_count=2,
+    )
+
+    # Recovery notification should be sent DESPITE being within cooldown period
+    assert notification_service._should_send_notification(recovered_service, previous_status=ServiceStatus.DOWN)
+
+
+def test_alert_notification_respects_cooldown(notification_service):
+    """Test that alert notifications respect the cooldown period."""
+    # Create a service that went DOWN
+    down_service = ServiceInfo(
+        service_name="test-service",
+        status=ServiceStatus.DOWN,
+        last_check_in=datetime.now(timezone.utc),
+        check_in_count=1,
+    )
+
+    # First notification should be sent
+    assert notification_service._should_send_notification(down_service, previous_status=ServiceStatus.UP)
+
+    # Simulate that a notification was just sent (within cooldown period)
+    notification_service._notification_history[down_service.service_name] = NotificationHistory(
+        service_name=down_service.service_name,
+        last_notification=datetime.now(timezone.utc),  # Just now
+        last_status=ServiceStatus.DOWN,
+        notification_count=1,
+    )
+
+    # Service goes DEGRADED immediately (still a problem state, within cooldown)
+    degraded_service = ServiceInfo(
+        service_name="test-service",
+        status=ServiceStatus.DEGRADED,
+        last_check_in=datetime.now(timezone.utc),
+        check_in_count=2,
+    )
+
+    # Second alert notification should NOT be sent (cooldown active)
+    assert not notification_service._should_send_notification(degraded_service, previous_status=ServiceStatus.DOWN)
