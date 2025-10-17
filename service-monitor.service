@@ -1,0 +1,48 @@
+[Unit]
+Description=Service Monitor - Health monitoring and alerting system
+After=network.target
+Documentation=https://github.com/lakowske/service-monitor
+StartLimitIntervalSec=300
+
+[Service]
+Type=simple
+WorkingDirectory=%PROJECT_DIR%
+Environment="PATH=%PROJECT_DIR%/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="VIRTUAL_ENV=%PROJECT_DIR%/.venv"
+
+# Service Monitor Configuration
+Environment="SERVICE_MONITOR_HOST=0.0.0.0"
+Environment="SERVICE_MONITOR_PORT=8000"
+Environment="SERVICE_MONITOR_LOG_LEVEL=info"
+
+# Email Notification Configuration (optional - configure as needed)
+# Environment="NOTIFICATION_ENABLED=true"
+# Environment="GMAIL_API_URL=http://127.0.0.1:7000"
+# Environment="NOTIFICATION_RECIPIENTS=admin@example.com"
+# Environment="NOTIFICATION_COOLDOWN_MINUTES=60"
+
+# Start the service monitor
+ExecStart=%PROJECT_DIR%/.venv/bin/python -m service_monitor.server \
+    --host ${SERVICE_MONITOR_HOST} \
+    --port ${SERVICE_MONITOR_PORT} \
+    --log-level ${SERVICE_MONITOR_LOG_LEVEL}
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%PROJECT_DIR%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=service-monitor
+
+[Install]
+WantedBy=default.target

@@ -238,11 +238,40 @@ section h3 {
     margin-bottom: 1rem;
 }
 
+.service-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .service-name {
     font-size: 1.1rem;
     font-weight: 600;
     color: #2d3748;
     margin: 0;
+}
+
+.delete-service-btn {
+    background: #e2e8f0;
+    border: none;
+    color: #718096;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.delete-service-btn:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
 }
 
 .service-status {

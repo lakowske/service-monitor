@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Monitor - Summary</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/widgets.css') }}">
+</head>
+<body{% if theme == 'dark' %} data-theme="dark"{% endif %}>
+    <a href="{{ dashboard_url }}" target="_top" class="widget-container">
+        <div class="summary-widget">
+            <div class="summary-status status-up">
+                <div class="summary-icon">✅</div>
+                <div class="summary-count">{{ status_counts.up }}</div>
+                <div class="summary-label">Up</div>
+            </div>
+            <div class="summary-status status-down">
+                <div class="summary-icon">❌</div>
+                <div class="summary-count">{{ status_counts.down }}</div>
+                <div class="summary-label">Down</div>
+            </div>
+            <div class="summary-status status-degraded">
+                <div class="summary-icon">⚠️</div>
+                <div class="summary-count">{{ status_counts.degraded }}</div>
+                <div class="summary-label">Degraded</div>
+            </div>
+            <div class="summary-status status-unknown">
+                <div class="summary-icon">❓</div>
+                <div class="summary-count">{{ status_counts.unknown }}</div>
+                <div class="summary-label">Unknown</div>
+            </div>
+        </div>
+        <div class="widget-footer">
+            Click to view full dashboard
+        </div>
+    </a>
+
+    <script>
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            window.location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

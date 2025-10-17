@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ service.service_name }} - Service Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/widgets.css') }}">
+</head>
+<body{% if theme == 'dark' %} data-theme="dark"{% endif %}>
+    <a href="{{ service_url }}" target="_top" class="widget-container">
+        <div class="service-widget">
+            <div class="service-widget-header">
+                <div class="service-widget-name">{{ service.service_name }}</div>
+                <div class="service-widget-status {{ service.status.value }}">
+                    {% if service.status.value == 'up' %}✅{% endif %}
+                    {% if service.status.value == 'down' %}❌{% endif %}
+                    {% if service.status.value == 'degraded' %}⚠️{% endif %}
+                    {% if service.status.value == 'unknown' %}❓{% endif %}
+                    {{ service.status.value.title() }}
+                </div>
+            </div>
+
+            <div class="service-widget-info">
+                <div class="service-widget-meta">
+                    <div class="service-widget-meta-label">Last Check:</div>
+                    <div class="service-widget-meta-value">{{ service.last_check_in.strftime('%H:%M:%S') }}</div>
+                </div>
+                <div class="service-widget-meta">
+                    <div class="service-widget-meta-label">Check-ins:</div>
+                    <div class="service-widget-meta-value">{{ service.check_in_count }}</div>
+                </div>
+            </div>
+
+            {% if service.message %}
+            <div class="service-widget-message">{{ service.message }}</div>
+            {% endif %}
+        </div>
+        <div class="widget-footer">
+            Click for detailed view
+        </div>
+    </a>
+
+    <script>
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            window.location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

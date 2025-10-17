@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Monitor - Critical Alerts</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/widgets.css') }}">
+</head>
+<body{% if theme == 'dark' %} data-theme="dark"{% endif %}>
+    <a href="{{ dashboard_url }}" target="_top" class="widget-container">
+        <div class="critical-widget">
+            {% if critical_services %}
+                {% for service in critical_services %}
+                <div class="critical-service">
+                    <div class="critical-service-name">{{ service.service_name }}</div>
+                    <div class="critical-service-status {{ service.status.value }}">
+                        {% if service.status.value == 'down' %}❌{% endif %}
+                        {% if service.status.value == 'degraded' %}⚠️{% endif %}
+                        {{ service.status.value.title() }}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="critical-empty">
+                    <div class="critical-empty-icon">✅</div>
+                    <div class="critical-empty-text">All systems operational</div>
+                </div>
+            {% endif %}
+        </div>
+        <div class="widget-footer">
+            Click to view full dashboard
+        </div>
+    </a>
+
+    <script>
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            window.location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

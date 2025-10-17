@@ -1,9 +1,12 @@
 """Main FastAPI application for the service monitor."""
 
+import asyncio
+import contextlib
 import logging
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -11,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .models import HealthResponse, ServiceCheckIn, ServiceInfo, ServiceStatus
+from .monitored_services import MonitoredService, MonitoredServiceManager
 from .notifications import notification_service
 from .storage import InMemoryStorage
 
@@ -30,8 +34,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Initialize storage
+# Initialize storage and monitored services manager
 storage = InMemoryStorage()
+monitored_services_manager = MonitoredServiceManager()
 
 # Setup templates and static files
 BASE_DIR = Path(__file__).resolve().parent
@@ -48,13 +53,69 @@ def reset_storage() -> None:
 # Track application start time for uptime calculation
 app_start_time = time.time()
 
+# Background task for checking stale services
+stale_check_task: Optional[asyncio.Task] = None
+
 logger.info("Service Monitor application starting - version: 0.1.0")
+
+
+async def check_stale_services_loop() -> None:
+    """Background task to periodically check for stale services."""
+    logger.info("Starting stale service checker - check interval: 30s, timeout: 150s")
+
+    while True:
+        try:
+            await asyncio.sleep(30)  # Check every 30 seconds
+
+            # Check for stale services
+            stale_services = storage.check_stale_services(timeout_seconds=150)
+
+            # Send notifications for services that became stale
+            for service_info, previous_status in stale_services:
+                try:
+                    await notification_service.send_service_notification(service_info, previous_status)
+                    logger.info(
+                        f"Notification sent for stale service - service_name: {service_info.service_name}, "
+                        f"previous_status: {previous_status.value}, current_status: {service_info.status.value}"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to send notification for stale service {service_info.service_name}: {str(e)}",
+                        exc_info=True,
+                    )
+
+        except asyncio.CancelledError:
+            logger.info("Stale service checker cancelled")
+            raise
+        except Exception as e:
+            logger.error(f"Error in stale service checker: {str(e)}", exc_info=True)
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    """Handle application startup."""
+    global stale_check_task
+
+    logger.info("Starting monitored services health checking")
+    await monitored_services_manager.start_monitoring(storage)
+
+    # Start background task to check for stale services
+    stale_check_task = asyncio.create_task(check_stale_services_loop())
+    logger.info("Started background stale service checker")
 
 
 @app.on_event("shutdown")
 async def shutdown_event() -> None:
     """Handle application shutdown."""
     logger.info("Service Monitor shutting down")
+
+    # Cancel stale check task
+    if stale_check_task:
+        stale_check_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await stale_check_task
+
+    await monitored_services_manager.close()
     await notification_service.close()
 
 
@@ -96,6 +157,80 @@ async def service_detail(request: Request, service_name: str) -> HTMLResponse:
         {
             "request": request,
             "service": service,
+        },
+    )
+
+
+# Widget Routes
+@app.get("/widgets/summary", response_class=HTMLResponse)
+async def widget_summary(request: Request, theme: str = "light") -> HTMLResponse:
+    """Summary widget showing status counts."""
+    services = storage.get_all_services()
+
+    # Count services by status
+    status_counts = {status.value: 0 for status in ServiceStatus}
+    for service in services:
+        status_counts[service.status.value] += 1
+
+    # Build dashboard URL (use request base URL)
+    dashboard_url = str(request.base_url).rstrip("/")
+
+    return templates.TemplateResponse(
+        "widgets/summary.html",
+        {
+            "request": request,
+            "status_counts": status_counts,
+            "dashboard_url": dashboard_url,
+            "theme": theme,
+        },
+    )
+
+
+@app.get("/widgets/critical", response_class=HTMLResponse)
+async def widget_critical(request: Request, theme: str = "light") -> HTMLResponse:
+    """Critical alerts widget showing only DOWN/DEGRADED services."""
+    # Get services that are down or degraded
+    down_services = storage.get_services_by_status(ServiceStatus.DOWN)
+    degraded_services = storage.get_services_by_status(ServiceStatus.DEGRADED)
+    critical_services = down_services + degraded_services
+
+    # Sort by status (DOWN first, then DEGRADED)
+    critical_services.sort(key=lambda s: (s.status.value != "down", s.service_name))
+
+    # Build dashboard URL
+    dashboard_url = str(request.base_url).rstrip("/")
+
+    return templates.TemplateResponse(
+        "widgets/critical.html",
+        {
+            "request": request,
+            "critical_services": critical_services,
+            "dashboard_url": dashboard_url,
+            "theme": theme,
+        },
+    )
+
+
+@app.get("/widgets/service/{service_name}", response_class=HTMLResponse)
+async def widget_service(request: Request, service_name: str, theme: str = "light") -> HTMLResponse:
+    """Single service widget showing detailed information."""
+    service = storage.get_service(service_name)
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Service '{service_name}' not found",
+        )
+
+    # Build service detail URL
+    service_url = f"{str(request.base_url).rstrip('/')}/service/{service_name}"
+
+    return templates.TemplateResponse(
+        "widgets/service.html",
+        {
+            "request": request,
+            "service": service,
+            "service_url": service_url,
+            "theme": theme,
         },
     )
 
@@ -332,6 +467,135 @@ async def clear_all_notification_history() -> dict:
     return {
         "success": True,
         "message": "All notification history cleared",
+    }
+
+
+# Monitored Services Management Endpoints
+@app.get("/monitored-services")
+async def get_monitored_services() -> dict:
+    """Get all monitored services configurations."""
+    services = monitored_services_manager.get_all_services()
+    return {
+        "success": True,
+        "services": [service.model_dump() for service in services],
+        "total": len(services),
+    }
+
+
+@app.get("/monitored-services/{service_name}")
+async def get_monitored_service(service_name: str) -> dict:
+    """Get a specific monitored service configuration."""
+    service = monitored_services_manager.get_service(service_name)
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Monitored service '{service_name}' not found",
+        )
+    return {
+        "success": True,
+        "service": service.model_dump(),
+    }
+
+
+@app.post("/monitored-services")
+async def add_monitored_service(service: MonitoredService) -> dict:
+    """Add or update a monitored service."""
+    # Add the service to configuration
+    monitored_services_manager.add_service(service)
+
+    # Start monitoring for this service if enabled
+    if service.enabled:
+        await monitored_services_manager.start_monitoring(storage)
+
+    logger.info(f"Monitored service added/updated: {service.name}")
+    return {
+        "success": True,
+        "message": f"Monitored service '{service.name}' added/updated successfully",
+        "service": service.model_dump(),
+    }
+
+
+@app.put("/monitored-services/{service_name}")
+async def update_monitored_service(service_name: str, service: MonitoredService) -> dict:
+    """Update a monitored service configuration."""
+    if service.name != service_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Service name in path must match service name in body",
+        )
+
+    existing = monitored_services_manager.get_service(service_name)
+    if existing is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Monitored service '{service_name}' not found",
+        )
+
+    # Stop monitoring for old configuration
+    await monitored_services_manager.stop_monitoring(service_name)
+
+    # Update the service
+    monitored_services_manager.add_service(service)
+
+    # Restart monitoring if enabled
+    if service.enabled:
+        await monitored_services_manager.start_monitoring(storage)
+
+    logger.info(f"Monitored service updated: {service_name}")
+    return {
+        "success": True,
+        "message": f"Monitored service '{service_name}' updated successfully",
+        "service": service.model_dump(),
+    }
+
+
+@app.delete("/monitored-services/{service_name}")
+async def delete_monitored_service(service_name: str) -> dict:
+    """Remove a monitored service."""
+    # Stop monitoring
+    await monitored_services_manager.stop_monitoring(service_name)
+
+    # Remove from configuration
+    if not monitored_services_manager.remove_service(service_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Monitored service '{service_name}' not found",
+        )
+
+    logger.info(f"Monitored service removed: {service_name}")
+    return {
+        "success": True,
+        "message": f"Monitored service '{service_name}' removed successfully",
+    }
+
+
+@app.post("/monitored-services/{service_name}/check")
+async def check_monitored_service(service_name: str) -> dict:
+    """Manually trigger a health check for a monitored service."""
+    service = monitored_services_manager.get_service(service_name)
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Monitored service '{service_name}' not found",
+        )
+
+    # Perform health check
+    status_result, message, metadata = await monitored_services_manager.check_service_health(service)
+
+    # Update storage
+    storage.update_service(
+        service_name=service.name,
+        status=status_result,
+        message=message,
+        metadata=metadata,
+    )
+
+    return {
+        "success": True,
+        "service_name": service_name,
+        "status": status_result.value,
+        "message": message,
+        "metadata": metadata,
     }
 
 

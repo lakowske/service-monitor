@@ -1,0 +1,12 @@
+[
+  {
+    "name": "gmail-llm-api",
+    "health_url": "http://127.0.0.1:7000/health",
+    "check_interval_seconds": 60,
+    "timeout_seconds": 10,
+    "expected_status_code": 200,
+    "enabled": true,
+    "check_response_body": false,
+    "expected_body_content": null
+  }
+]

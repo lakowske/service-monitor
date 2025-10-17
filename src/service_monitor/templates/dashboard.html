@@ -78,12 +78,17 @@
                     <div class="service-card service-{{ service.status.value }}" onclick="window.location.href='/service/{{ service.service_name | urlencode }}'">
                         <div class="service-header">
                             <h3 class="service-name">{{ service.service_name }}</h3>
-                            <div class="service-status status-{{ service.status.value }}">
-                                {% if service.status.value == 'up' %}✅{% endif %}
-                                {% if service.status.value == 'down' %}❌{% endif %}
-                                {% if service.status.value == 'degraded' %}⚠️{% endif %}
-                                {% if service.status.value == 'unknown' %}❓{% endif %}
-                                {{ service.status.value.title() }}
+                            <div class="service-header-right">
+                                <div class="service-status status-{{ service.status.value }}">
+                                    {% if service.status.value == 'up' %}✅{% endif %}
+                                    {% if service.status.value == 'down' %}❌{% endif %}
+                                    {% if service.status.value == 'degraded' %}⚠️{% endif %}
+                                    {% if service.status.value == 'unknown' %}❓{% endif %}
+                                    {{ service.status.value.title() }}
+                                </div>
+                                <button class="delete-service-btn" onclick="event.stopPropagation(); deleteService('{{ service.service_name }}');" title="Remove service from monitoring">
+                                    ✕
+                                </button>
                             </div>
                         </div>
                         <div class="service-info">
@@ -270,6 +275,24 @@
                     viewNotificationHistory(); // Refresh the view
                 } catch (error) {
                     alert('Failed to clear service history: ' + error.message);
+                }
+            }
+        }
+
+        // Service deletion
+        async function deleteService(serviceName) {
+            if (confirm(`Are you sure you want to remove "${serviceName}" from monitoring?\n\nThis will delete all check-in history for this service.`)) {
+                try {
+                    const response = await fetch(`/services/${encodeURIComponent(serviceName)}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        // Reload the page to show updated service list
+                        window.location.reload();
+                    } else {
+                        const error = await response.json();
+                        alert(`Failed to delete service: ${error.detail || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    alert('Failed to delete service: ' + error.message);
                 }
             }
         }

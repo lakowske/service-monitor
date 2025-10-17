@@ -1,12 +1,15 @@
 """Storage layer for service monitoring data."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from .models import ServiceInfo, ServiceStatus
 
 logger = logging.getLogger(__name__)
+
+# Default timeout for check-in services (150 seconds = 2.5 minutes)
+DEFAULT_CHECKIN_TIMEOUT_SECONDS = 150
 
 
 class InMemoryStorage:
@@ -152,3 +155,45 @@ class InMemoryStorage:
         count = len(self._services)
         logger.debug(f"Service count retrieved - count: {count}")
         return count
+
+    def check_stale_services(
+        self, timeout_seconds: int = DEFAULT_CHECKIN_TIMEOUT_SECONDS
+    ) -> list[tuple[ServiceInfo, ServiceStatus]]:
+        """Check for services that haven't checked in within the timeout period.
+
+        Args:
+            timeout_seconds: Number of seconds after which a service is considered stale
+
+        Returns:
+            List of tuples (ServiceInfo, previous_status) for services that became stale
+        """
+        current_time = datetime.now(timezone.utc)
+        timeout_threshold = current_time - timedelta(seconds=timeout_seconds)
+        stale_services = []
+
+        for service_name, service in self._services.items():
+            # Only check services that are currently marked as UP or DEGRADED and haven't checked in
+            if (
+                service.status in (ServiceStatus.UP, ServiceStatus.DEGRADED)
+                and service.last_check_in < timeout_threshold
+            ):
+                time_since_checkin = (current_time - service.last_check_in).total_seconds()
+                previous_status = service.status
+
+                # Mark service as DOWN due to timeout
+                service.status = ServiceStatus.DOWN
+                service.message = f"No check-in for {int(time_since_checkin)}s (timeout: {timeout_seconds}s)"
+
+                logger.warning(
+                    f"Service marked as stale - service_name: {service_name}, "
+                    f"last_check_in: {service.last_check_in}, "
+                    f"time_since_checkin: {int(time_since_checkin)}s, "
+                    f"previous_status: {previous_status.value}"
+                )
+
+                stale_services.append((service, previous_status))
+
+        if stale_services:
+            logger.info(f"Found {len(stale_services)} stale services")
+
+        return stale_services
