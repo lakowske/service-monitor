@@ -1,0 +1,16 @@
+{
+  "name": "service-monitor",
+  "description": "Monitor service health at raspberrypi.local:8000",
+  "version": "0.1.0",
+  "category": "infrastructure",
+  "format": "claude-code",
+  "commands": [],
+  "skills": [
+    {
+      "name": "service-monitor",
+      "directory": "skills/service-monitor",
+      "description": "Monitor service health, check service status, add monitored services, view notifications"
+    }
+  ],
+  "binaries": []
+}
